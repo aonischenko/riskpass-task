@@ -7,11 +7,21 @@ import java.util.List;
 import java.util.regex.Matcher;
 
 public class ExtractionService {
+
   private final Config config;
-  public Config config() {return this.config;}
+
+  // Default constructor added
+  public ExtractionService() {
+    this(new Config());
+  }
 
   public ExtractionService(final Config config) {
-    this.config = config;
+    this.config = config != null ? config : new Config();
+  }
+
+  // Field getter placed after constructor
+  public Config config() {
+    return this.config;
   }
 
   public List<String> extract(final String line) {
@@ -19,10 +29,16 @@ public class ExtractionService {
 
     String text = line.trim();
     while (!text.isEmpty()) {
-      if (text.startsWith("\"")) {
-        text = this.addQuotedCell(text, values);
+
+      // Replacing check for double quote with the config quote pattern
+      Matcher matcher = this.config().firstQuotePattern().matcher(text);
+
+      if (matcher.find()) {
+        // Replaced unquote call to use pattern instead of substring
+        String unquotedText = matcher.replaceFirst("");
+        text = this.addQuotedCell(unquotedText, values);
       } else {
-        text = this.addCell(text, values);
+        text = this.addUnquotedCell(text, values);
       }
     }
 
@@ -35,22 +51,23 @@ public class ExtractionService {
   ) {
     String newText = "";
 
-    String unquotedText = text.substring(1);
-    Matcher matcher = this.config().nextQuotePattern().matcher(unquotedText);
+    // Unquote moved into extract method, since we have the same matcher there
+    Matcher matcher = this.config().nextQuotePattern().matcher(text);
     if (matcher.find()) {
       newText = this.addCell(
-        unquotedText, values,
+        text, values,
         matcher.start(), matcher.end(),
         false
       );
     } else {
-      this.addLastQuotedCell(unquotedText, values);
+      this.addLastQuotedCell(text, values);
     }
 
     return newText;
   }
 
-  private String addCell(
+  // Renamed
+  private String addUnquotedCell(
     final String text,
     final List<String> values
   ) {
@@ -64,7 +81,7 @@ public class ExtractionService {
         true
       );
     } else {
-      this.addLastCell(text, values);
+      this.addLastUnquotedCell(text, values);
     }
 
     return newText;
@@ -79,10 +96,12 @@ public class ExtractionService {
       throw new IllegalStateException();
     }
 
-    values.add(text.substring(0, text.length() - 1));
+    String value = matcher.replaceFirst("");
+    values.add(value);
   }
 
-  private void addLastCell(
+  // Renamed
+  private void addLastUnquotedCell(
     final String text,
     final List<String> values
   ) {

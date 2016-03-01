@@ -3,46 +3,86 @@ package com.riskpass.task.config;
 import java.util.regex.Pattern;
 
 public class Config {
-  private static final Pattern COMMA_PATTERN = Pattern.compile(",");
-  private static final Pattern NEXT_QUOTE_PATTERN = Pattern.compile("\"\\s*,");
-  private static final Pattern LAST_QUOTE_PATTERN = Pattern.compile("\"$");
 
-  Pattern commaPattern = Config.COMMA_PATTERN;
-  public Pattern commaPattern() {return this.commaPattern;}
+  public static final String DEFAULT_COMMA_REGEX = ",";
+  public static final String DEFAULT_QUOTE_REGEX = "\"";
 
-  Pattern nextQuotePattern = Config.NEXT_QUOTE_PATTERN;
-  public Pattern nextQuotePattern() {return this.nextQuotePattern;}
+  // Fields initialization moved into the constructor
+  Pattern commaPattern;
+  Pattern nextQuotePattern;
+  Pattern firstQuotePattern;
+  Pattern lastQuotePattern;
 
-  Pattern lastQuotePattern = Config.LAST_QUOTE_PATTERN;
-  public Pattern lastQuotePattern() {return this.lastQuotePattern;}
+  String commaRegex;
+  String quoteRegex;
 
   public Config() {
+    this(Config.DEFAULT_COMMA_REGEX, Config.DEFAULT_QUOTE_REGEX);
   }
 
-  public Config(
-    final Pattern commaPattern,
-    final Pattern nextQuotePattern,
-    final Pattern lastQuotePattern
-  ) {
-    this.commaPattern = commaPattern;
-    this.nextQuotePattern = nextQuotePattern;
-    this.lastQuotePattern = lastQuotePattern;
+  public Config(final String commaRegex, final String quoteRegex) {
+    this.commaRegex = commaRegex != null && !commaRegex.isEmpty() ? commaRegex : DEFAULT_COMMA_REGEX;
+    this.quoteRegex = quoteRegex != null && !quoteRegex.isEmpty() ? quoteRegex : DEFAULT_QUOTE_REGEX;
+
+    this.updatePatterns();
   }
 
+  public Pattern commaPattern() {
+    return this.commaPattern;
+  }
+
+  public Pattern nextQuotePattern() {
+    return this.nextQuotePattern;
+  }
+
+  public Pattern firstQuotePattern() {
+    return firstQuotePattern;
+  }
+
+  public Pattern lastQuotePattern() {
+    return this.lastQuotePattern;
+  }
+
+  public String commaRegex() {
+    return commaRegex;
+  }
+
+  public String quoteRegex() {
+    return quoteRegex;
+  }
+
+  void updatePatterns() {
+    this.commaPattern = Pattern.compile(this.commaRegex);
+    this.nextQuotePattern = Pattern.compile(String.format("%s\\s*,", this.quoteRegex));
+    this.firstQuotePattern = Pattern.compile(String.format("^%s", this.quoteRegex));
+    this.lastQuotePattern = Pattern.compile(String.format("%s$", this.quoteRegex));
+  }
+
+  //TODO Builder pattern is more suitable for this class
   public static class Modifiable extends Config {
-    public void commaPattern(final Pattern value) {this.commaPattern = value;}
-    public void nextQuotePattern(final Pattern value) {this.nextQuotePattern = value;}
-    public void lastQuotePattern(final Pattern value) {this.lastQuotePattern = value;}
 
     public Modifiable() {
+      super();
     }
 
-    public Modifiable(
-      final Pattern commaPattern,
-      final Pattern nextQuotePattern,
-      final Pattern lastQuotePattern
-    ) {
-      super(commaPattern, nextQuotePattern, lastQuotePattern);
+    public Modifiable(String commaRegex, String quoteRegex) {
+      super(commaRegex, quoteRegex);
+    }
+
+    public void commaRegex(String commaRegex) {
+      if (commaRegex == null || commaRegex.isEmpty()) {
+        throw new IllegalArgumentException("Comma regex invalid.");
+      }
+      this.commaRegex = commaRegex;
+      this.updatePatterns();
+    }
+
+    public void quoteRegex(String quoteRegex) {
+      if (quoteRegex == null || quoteRegex.isEmpty()) {
+        throw new IllegalArgumentException("Quote regex invalid.");
+      }
+      this.quoteRegex = quoteRegex;
+      this.updatePatterns();
     }
   }
 }
